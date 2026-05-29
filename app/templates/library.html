@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}My Library{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">My Library</h1>
+  <p class="page-header-sub">{{ songs|length }} songs in your collection</p>
+</div>
+
+<div class="page-section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      {% if songs %}
+      <button onclick="playAll()" class="btn btn-primary" style="padding:10px 20px">
+        <i class="fas fa-play"></i> Play All
+      </button>
+      <button onclick="shuffleAll()" class="btn btn-outline" style="padding:10px 20px">
+        <i class="fas fa-random"></i> Shuffle
+      </button>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('library.upload') }}" class="btn btn-outline" style="padding:10px 20px">
+      <i class="fas fa-plus"></i> Upload Song
+    </a>
+  </div>
+
+  {% if songs %}
+  <div class="songs-grid" id="songsList">
+    {% for song in songs %}
+    <div class="song-card"
+         data-song-id="{{ song.id }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-album="{{ song.album }}"
+         data-cover="{{ song.cover_path }}"
+         data-duration="{{ song.duration }}"
+         data-duration-fmt="{{ song.duration_formatted }}"
+         data-lyrics="{{ song.lyrics|default('') }}"
+         id="songCard{{ song.id }}">
+      <span style="color:var(--text-muted);font-size:13px;width:24px;text-align:center;flex-shrink:0">{{ loop.index }}</span>
+      <div class="song-card-cover">
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+      </div>
+      <div class="song-card-info">
+        <div class="song-card-title">{{ song.title }}</div>
+        <div class="song-card-artist">{{ song.artist }} • {{ song.album }}</div>
+      </div>
+      <div class="song-card-meta">
+        {% if song.genre_ref %}<span class="genre-badge">{{ song.genre_ref.name }}</span>{% endif %}
+        <span class="song-card-duration">{{ song.duration_formatted }}</span>
+        <div class="song-actions">
+          <button class="icon-btn {% if current_user.is_favorite(song.id) %}active{% endif %}"
+                  data-fav-btn="{{ song.id }}" title="Favorite"
+                  style="{% if current_user.is_favorite(song.id) %}color:var(--accent-2){% endif %}">
+            <i class="fas fa-heart"></i>
+          </button>
+          <button class="icon-btn" data-playlist-btn="{{ song.id }}" title="Add to playlist">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button class="icon-btn" onclick="event.stopPropagation();deleteSong({{ song.id }})" title="Delete" style="color:rgba(239,68,68,0.6)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="text-align:center;padding:80px 32px">
+    <div style="font-size:64px;margin-bottom:20px">🎵</div>
+    <h3 style="font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:12px">Your library is empty</h3>
+    <p style="color:var(--text-muted);margin-bottom:24px">Upload your music collection to get started</p>
+    <a href="{{ url_for('library.upload') }}" class="btn btn-primary"><i class="fas fa-cloud-upload-alt"></i> Upload Music</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const allSongs = [
+  {% for song in songs %}
+  {
+    id: {{ song.id }},
+    title: {{ song.title|tojson }},
+    artist: {{ song.artist|tojson }},
+    album: {{ song.album|tojson }},
+    cover_path: {{ song.cover_path|tojson }},
+    duration: {{ song.duration }},
+    duration_formatted: {{ song.duration_formatted|tojson }},
+    lyrics: {{ (song.lyrics or '')|tojson }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+function playAll() {
+  if (allSongs.length > 0) playSong(allSongs[0], allSongs);
+}
+
+function shuffleAll() {
+  const shuffled = [...allSongs].sort(() => Math.random() - 0.5);
+  if (shuffled.length > 0) {
+    isShuffle = true;
+    document.getElementById('shuffleBtn').classList.add('active');
+    playSong(shuffled[0], shuffled);
+  }
+}
+
+async function deleteSong(songId) {
+  if (!confirm('Delete this song permanently?')) return;
+  const res = await fetch(`/library/delete/${songId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    const card = document.getElementById(`songCard${songId}`);
+    card.style.transition = 'all 0.3s ease';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(-20px)';
+    setTimeout(() => card.remove(), 300);
+    showToast('Song deleted', 'success');
+  } else {
+    showToast('Could not delete song', 'error');
+  }
+}
+</script>
+{% endblock %}

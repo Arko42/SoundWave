@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — SoundWave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="overflow:auto">
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon" style="margin:0 auto 12px;width:56px;height:56px;font-size:24px">
+        <i class="fas fa-wave-square"></i>
+      </div>
+      <div style="font-family:var(--font-display);font-size:24px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SoundWave</div>
+    </div>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Join millions of music lovers today</p>
+
+    <div id="errorMsg" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:13px"></div>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <div style="position:relative">
+          <i class="fas fa-user" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px"></i>
+          <input type="text" name="username" class="form-control" placeholder="cooluser123" style="padding-left:42px" required minlength="3">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div style="position:relative">
+          <i class="fas fa-envelope" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px"></i>
+          <input type="email" name="email" class="form-control" placeholder="you@example.com" style="padding-left:42px" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div style="position:relative">
+          <i class="fas fa-lock" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px"></i>
+          <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Min 6 characters" style="padding-left:42px" required minlength="6" oninput="checkStrength(this.value)">
+          <button type="button" onclick="togglePass()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+        <div id="strengthBar" style="margin-top:8px;height:3px;border-radius:2px;background:var(--bg-tertiary);overflow:hidden">
+          <div id="strengthFill" style="height:100%;width:0%;border-radius:2px;transition:all 0.3s ease"></div>
+        </div>
+        <div id="strengthLabel" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;border-radius:12px;padding:14px;margin-top:8px" id="registerBtn">
+        <i class="fas fa-rocket"></i> Create Account
+      </button>
+    </form>
+
+    <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:16px">
+      By signing up, you agree to our Terms of Service and Privacy Policy.
+    </p>
+
+    <div class="auth-switch">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePass() {
+  const input = document.getElementById('passwordInput');
+  const icon = document.getElementById('eyeIcon');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function checkStrength(password) {
+  const fill = document.getElementById('strengthFill');
+  const label = document.getElementById('strengthLabel');
+  let strength = 0;
+  if (password.length >= 6) strength++;
+  if (password.length >= 10) strength++;
+  if (/[A-Z]/.test(password)) strength++;
+  if (/[0-9]/.test(password)) strength++;
+  if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+  const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
+  const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+  const idx = Math.min(strength - 1, 4);
+
+  fill.style.width = (strength * 20) + '%';
+  fill.style.background = strength > 0 ? colors[idx] : 'transparent';
+  label.textContent = strength > 0 ? labels[idx] : '';
+  label.style.color = strength > 0 ? colors[idx] : 'var(--text-muted)';
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('registerBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+  btn.disabled = true;
+
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (result.success) {
+      window.location.href = result.redirect || '/';
+    } else {
+      const err = document.getElementById('errorMsg');
+      err.style.display = 'block';
+      err.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${result.message}`;
+    }
+  } catch {
+    document.getElementById('errorMsg').style.display = 'block';
+    document.getElementById('errorMsg').textContent = 'Connection error. Please try again.';
+  }
+  btn.innerHTML = '<i class="fas fa-rocket"></i> Create Account';
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>

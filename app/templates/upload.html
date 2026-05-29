@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block title %}Upload Music{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">Upload Music</h1>
+  <p class="page-header-sub">Add songs to your library — MP3, WAV, OGG, FLAC supported</p>
+</div>
+
+<div class="page-section" style="max-width:700px">
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('audioInput').click()">
+    <div id="uploadIcon"><i class="fas fa-cloud-upload-alt" style="font-size:48px;color:var(--accent);margin-bottom:16px;display:block"></i></div>
+    <h3 id="uploadTitle">Drop your audio file here</h3>
+    <p id="uploadSub" style="color:var(--text-muted);margin-top:8px;font-size:14px">or click to browse — MP3, WAV, OGG, FLAC, M4A (max 50MB)</p>
+    <input type="file" id="audioInput" accept=".mp3,.wav,.ogg,.flac,.m4a" style="display:none" onchange="handleAudioSelected(this.files[0])">
+  </div>
+
+  <!-- Upload Progress -->
+  <div id="uploadProgress" style="display:none;margin-top:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <span id="uploadProgressLabel" style="font-size:13px;color:var(--text-secondary)">Uploading...</span>
+      <span id="uploadProgressPct" style="font-size:13px;font-weight:600;color:var(--accent-bright);margin-left:auto">0%</span>
+    </div>
+    <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
+      <div id="uploadProgressBar" style="height:100%;width:0%;background:var(--gradient);border-radius:2px;transition:width 0.3s ease"></div>
+    </div>
+  </div>
+
+  <!-- Metadata Form -->
+  <div id="metadataForm" style="display:none;margin-top:28px">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
+      <div style="display:flex;gap:20px;margin-bottom:24px;align-items:flex-start">
+        <!-- Cover Preview -->
+        <div style="flex-shrink:0">
+          <div style="width:100px;height:100px;border-radius:12px;overflow:hidden;border:2px dashed var(--border);cursor:pointer;position:relative"
+               onclick="document.getElementById('coverInput').click()">
+            <img id="coverPreview" src="/static/images/default_cover.jpg" alt="Cover"
+                 style="width:100%;height:100%;object-fit:cover">
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s"
+                 onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+              <i class="fas fa-camera" style="color:white;font-size:20px"></i>
+            </div>
+          </div>
+          <input type="file" id="coverInput" accept="image/*" style="display:none" onchange="previewCover(this)">
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:6px">Click to change</p>
+        </div>
+
+        <!-- File Info -->
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <i class="fas fa-music" style="color:var(--accent)"></i>
+            <span id="fileNameDisplay" style="font-size:14px;font-weight:600;color:var(--text-primary)"></span>
+          </div>
+          <div id="fileDurationDisplay" style="font-size:12px;color:var(--text-muted)"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Title *</label>
+          <input type="text" id="songTitle" class="form-control" placeholder="Song title">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Artist *</label>
+          <input type="text" id="songArtist" class="form-control" placeholder="Artist name">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Album</label>
+          <input type="text" id="songAlbum" class="form-control" placeholder="Album name">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Genre</label>
+          <select id="songGenre" class="form-control">
+            <option value="">Select genre</option>
+            {% for g in genres %}
+            <option value="{{ g.id }}">{{ g.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Lyrics (optional)</label>
+        <textarea id="songLyrics" class="form-control" rows="4" placeholder="Paste song lyrics here..."></textarea>
+      </div>
+
+      <button onclick="submitUpload()" class="btn btn-primary" id="submitBtn" style="margin-top:8px">
+        <i class="fas fa-upload"></i> Upload Song
+      </button>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div id="uploadSuccess" style="display:none;margin-top:20px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-lg);padding:24px;text-align:center">
+    <i class="fas fa-check-circle" style="font-size:36px;color:#10b981;margin-bottom:12px;display:block"></i>
+    <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;margin-bottom:8px">Upload Successful!</h3>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px" id="successMsg"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="resetUpload()" class="btn btn-outline">Upload Another</button>
+      <a href="{{ url_for('library.index') }}" class="btn btn-primary">View Library</a>
+    </div>
+  </div>
+</div>
+
+<!-- Your Library Preview -->
+<div class="page-section" style="max-width:700px">
+  <div class="section-header">
+    <h2 class="section-title" style="font-size:18px">Your Library</h2>
+    <a href="{{ url_for('library.index') }}" class="section-link">View all</a>
+  </div>
+  <div id="libraryPreview" style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px">
+    Loading your songs...
+  </div>
+</div>
+
+<script>
+let selectedAudioFile = null;
+let selectedCoverFile = null;
+
+function handleAudioSelected(file) {
+  if (!file) return;
+  selectedAudioFile = file;
+
+  document.getElementById('uploadTitle').textContent = file.name;
+  document.getElementById('uploadSub').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB • Audio file`;
+  document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-check-circle" style="font-size:48px;color:#10b981;margin-bottom:16px;display:block"></i>';
+
+  const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  document.getElementById('songTitle').value = title;
+  document.getElementById('fileNameDisplay').textContent = file.name;
+
+  // Get duration using audio element
+  const tempAudio = new Audio(URL.createObjectURL(file));
+  tempAudio.onloadedmetadata = () => {
+    const mins = Math.floor(tempAudio.duration / 60);
+    const secs = Math.floor(tempAudio.duration % 60);
+    document.getElementById('fileDurationDisplay').textContent = `Duration: ${mins}:${secs.toString().padStart(2,'0')}`;
+  };
+
+  document.getElementById('metadataForm').style.display = 'block';
+}
+
+function previewCover(input) {
+  if (input.files && input.files[0]) {
+    selectedCoverFile = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => document.getElementById('coverPreview').src = e.target.result;
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function submitUpload() {
+  if (!selectedAudioFile) return;
+  const title = document.getElementById('songTitle').value.trim();
+  const artist = document.getElementById('songArtist').value.trim();
+  if (!title) { showToast('Please enter a song title', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('audio', selectedAudioFile);
+  formData.append('title', title);
+  formData.append('artist', artist || 'Unknown Artist');
+  formData.append('album', document.getElementById('songAlbum').value);
+  formData.append('genre_id', document.getElementById('songGenre').value);
+  formData.append('lyrics', document.getElementById('songLyrics').value);
+
+  if (selectedCoverFile) formData.append('cover', selectedCoverFile);
+
+  // Show progress
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+  document.getElementById('uploadProgress').style.display = 'block';
+
+  // Simulate progress animation
+  let pct = 0;
+  const prog = setInterval(() => {
+    pct = Math.min(pct + 5, 90);
+    document.getElementById('uploadProgressBar').style.width = pct + '%';
+    document.getElementById('uploadProgressPct').textContent = pct + '%';
+  }, 200);
+
+  try {
+    const res = await fetch('/library/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    clearInterval(prog);
+
+    if (data.success) {
+      document.getElementById('uploadProgressBar').style.width = '100%';
+      document.getElementById('uploadProgressPct').textContent = '100%';
+      setTimeout(() => {
+        document.getElementById('metadataForm').style.display = 'none';
+        document.getElementById('uploadProgress').style.display = 'none';
+        document.getElementById('uploadSuccess').style.display = 'block';
+        document.getElementById('successMsg').textContent = `"${data.song.title}" by ${data.song.artist} uploaded successfully!`;
+      }, 500);
+    } else {
+      showToast(data.message || 'Upload failed', 'error');
+    }
+  } catch (e) {
+    clearInterval(prog);
+    showToast('Upload failed. Please try again.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-upload"></i> Upload Song';
+}
+
+function resetUpload() {
+  selectedAudioFile = null;
+  selectedCoverFile = null;
+  document.getElementById('uploadTitle').textContent = 'Drop your audio file here';
+  document.getElementById('uploadSub').textContent = 'or click to browse — MP3, WAV, OGG, FLAC, M4A (max 50MB)';
+  document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-cloud-upload-alt" style="font-size:48px;color:var(--accent);margin-bottom:16px;display:block"></i>';
+  document.getElementById('metadataForm').style.display = 'none';
+  document.getElementById('uploadSuccess').style.display = 'none';
+  document.getElementById('uploadProgress').style.display = 'none';
+  document.getElementById('audioInput').value = '';
+}
+
+// Load library preview
+window.addEventListener('DOMContentLoaded', async () => {
+  const res = await fetch('/api/songs?per_page=5');
+  const data = await res.json();
+  const container = document.getElementById('libraryPreview');
+  if (data.songs && data.songs.length > 0) {
+    container.innerHTML = data.songs.map(s => `
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <img src="${s.cover_path === 'default_cover.jpg' ? '/static/images/default_cover.jpg' : '/player/cover/'+s.cover_path}"
+             style="width:36px;height:36px;border-radius:6px;object-fit:cover">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${s.artist}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted)">${s.duration_formatted}</span>
+      </div>
+    `).join('');
+  } else {
+    container.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text-muted)">No songs yet — upload your first track!</p>';
+  }
+});
+</script>
+{% endblock %}

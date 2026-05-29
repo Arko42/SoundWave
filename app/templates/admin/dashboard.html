@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">⚡ Admin Dashboard</h1>
+  <p class="page-header-sub">Platform analytics and management</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="page-section" style="padding-bottom:0">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+    {% set stats_data = [
+      ('fa-users', 'Total Users', stats.total_users, '#7c3aed'),
+      ('fa-music', 'Total Songs', stats.total_songs, '#ec4899'),
+      ('fa-list', 'Playlists', stats.total_playlists, '#06b6d4'),
+      ('fa-play', 'Total Plays', stats.total_plays, '#f59e0b')
+    ] %}
+    {% for icon, label, value, color in stats_data %}
+    <div class="stat-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="width:40px;height:40px;background:{{ color }}20;border-radius:10px;display:flex;align-items:center;justify-content:center">
+          <i class="fas {{ icon }}" style="color:{{ color }};font-size:16px"></i>
+        </div>
+        <span class="stat-label">{{ label }}</span>
+      </div>
+      <div class="stat-number">{{ value }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="page-section" style="padding-bottom:0">
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+    <!-- Daily Plays Chart -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
+      <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:20px">📈 Daily Plays (Last 7 Days)</h3>
+      <canvas id="playsChart" height="100"></canvas>
+    </div>
+
+    <!-- Genre Distribution -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
+      <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:20px">🎸 Genre Distribution</h3>
+      <canvas id="genreChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Top Songs & Recent Users -->
+<div class="page-section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <!-- Top Songs -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700">🔥 Top Songs</h3>
+        <a href="{{ url_for('admin.songs') }}" class="section-link">View all</a>
+      </div>
+      {% for song in top_songs %}
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-muted);font-size:13px;width:20px;text-align:center">{{ loop.index }}</span>
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             style="width:36px;height:36px;border-radius:6px;object-fit:cover"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ song.title }}</div>
+          <div style="font-size:11px;color:var(--text-muted)">{{ song.artist }}</div>
+        </div>
+        <span style="font-size:12px;color:var(--accent-bright);font-weight:600">{{ song.play_count }} plays</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Recent Users -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700">👥 Recent Users</h3>
+        <a href="{{ url_for('admin.users') }}" class="section-link">View all</a>
+      </div>
+      {% for user in recent_users %}
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <img src="{{ url_for('player.avatar', filename=user.avatar) }}" alt="{{ user.username }}"
+             style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border)"
+             onerror="this.src='/static/images/default_avatar.png'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">{{ user.username }}{% if user.is_admin %} 👑{% endif %}</div>
+          <div style="font-size:11px;color:var(--text-muted)">{{ user.email }}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted)">{{ user.created_at.strftime('%b %d') }}</span>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{% if user.is_active %}#10b981{% else %}#ef4444{% endif %}"></span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Admin Quick Actions -->
+<div class="page-section">
+  <h2 class="section-title" style="margin-bottom:16px">Quick Actions</h2>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <a href="{{ url_for('admin.songs') }}" class="btn btn-outline"><i class="fas fa-music"></i> Manage Songs</a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline"><i class="fas fa-users"></i> Manage Users</a>
+    <a href="{{ url_for('library.upload') }}" class="btn btn-outline"><i class="fas fa-upload"></i> Upload Song</a>
+  </div>
+</div>
+
+<script>
+// Daily plays chart
+const playsData = {{ daily_plays | tojson }};
+new Chart(document.getElementById('playsChart'), {
+  type: 'line',
+  data: {
+    labels: playsData.map(d => d.date),
+    datasets: [{
+      label: 'Plays',
+      data: playsData.map(d => d.plays),
+      borderColor: '#7c3aed',
+      backgroundColor: 'rgba(124,58,237,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#7c3aed',
+      pointRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9090b0', font: { family: 'Space Grotesk' } } },
+      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9090b0', font: { family: 'Space Grotesk' } } }
+    }
+  }
+});
+
+// Genre chart
+const genreData = {{ genre_stats | tojson }};
+new Chart(document.getElementById('genreChart'), {
+  type: 'doughnut',
+  data: {
+    labels: genreData.map(g => g[0]),
+    datasets: [{
+      data: genreData.map(g => g[1]),
+      backgroundColor: ['#7c3aed','#ec4899','#06b6d4','#f59e0b','#10b981','#ef4444','#8b5cf6','#0ea5e9','#f97316'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#9090b0', font: { family: 'Space Grotesk', size: 11 }, padding: 8 } }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">Manage Users</h1>
+  <p class="page-header-sub">{{ users|length }} registered users</p>
+</div>
+<div class="page-section">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <table class="data-table">
+      <thead>
+        <tr><th>User</th><th>Email</th><th>Role</th><th>Playlists</th><th>Plays</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr id="userRow{{ user.id }}">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <img src="{{ url_for('player.avatar', filename=user.avatar) }}" alt="{{ user.username }}"
+                   style="width:32px;height:32px;border-radius:50%;object-fit:cover"
+                   onerror="this.src='/static/images/default_avatar.png'">
+              <span style="font-weight:600">{{ user.username }}</span>
+            </div>
+          </td>
+          <td style="color:var(--text-muted);font-size:13px">{{ user.email }}</td>
+          <td>{% if user.is_admin %}<span class="genre-badge">👑 Admin</span>{% else %}<span style="color:var(--text-muted)">User</span>{% endif %}</td>
+          <td style="color:var(--text-muted)">{{ user.playlists.count() }}</td>
+          <td style="color:var(--text-muted)">{{ user.history.count() }}</td>
+          <td style="color:var(--text-muted);font-size:12px">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:{% if user.is_active %}#10b981{% else %}#ef4444{% endif %}">
+              <span style="width:7px;height:7px;border-radius:50%;background:{% if user.is_active %}#10b981{% else %}#ef4444{% endif %}"></span>
+              {% if user.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td>
+            {% if not user.is_admin or user.id != current_user.id %}
+            <button class="icon-btn" onclick="toggleUser({{ user.id }})" title="Toggle active"
+                    style="color:{% if user.is_active %}#f59e0b{% else %}#10b981{% endif %}">
+              <i class="fas fa-{% if user.is_active %}ban{% else %}check-circle{% endif %}" id="toggleIcon{{ user.id }}"></i>
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function toggleUser(id) {
+  const res = await fetch(`/admin/users/${id}/toggle`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    const icon = document.getElementById(`toggleIcon${id}`);
+    icon.className = data.active ? 'fas fa-ban' : 'fas fa-check-circle';
+    icon.parentElement.style.color = data.active ? '#f59e0b' : '#10b981';
+    showToast(data.active ? 'User activated' : 'User deactivated', 'success');
+  } else {
+    showToast(data.message, 'error');
+  }
+}
+</script>
+{% endblock %}

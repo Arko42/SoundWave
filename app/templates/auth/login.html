@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — SoundWave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="overflow:auto">
+<div class="auth-container">
+  <div style="position:fixed;inset:0;pointer-events:none">
+    <!-- Floating music notes decoration -->
+    <div style="position:absolute;top:15%;left:10%;font-size:40px;opacity:0.06;animation:float1 6s ease-in-out infinite">♪</div>
+    <div style="position:absolute;top:30%;right:15%;font-size:60px;opacity:0.05;animation:float2 8s ease-in-out infinite">♫</div>
+    <div style="position:absolute;bottom:20%;left:20%;font-size:50px;opacity:0.04;animation:float3 7s ease-in-out infinite">♩</div>
+    <div style="position:absolute;top:60%;right:8%;font-size:35px;opacity:0.06;animation:float1 9s ease-in-out infinite reverse">♬</div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon" style="margin:0 auto 12px;width:56px;height:56px;font-size:24px">
+        <i class="fas fa-wave-square"></i>
+      </div>
+      <div style="font-family:var(--font-display);font-size:24px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SoundWave</div>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account to continue</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for cat, msg in messages %}
+    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:13px">
+      <i class="fas fa-exclamation-circle"></i> {{ msg }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div id="errorMsg" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:13px"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div style="position:relative">
+          <i class="fas fa-envelope" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px"></i>
+          <input type="email" name="email" class="form-control" placeholder="you@example.com"
+                 style="padding-left:42px" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div style="position:relative">
+          <i class="fas fa-lock" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px"></i>
+          <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••"
+                 style="padding-left:42px" required autocomplete="current-password">
+          <button type="button" onclick="togglePass()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-secondary)">
+          <input type="checkbox" name="remember" style="accent-color:var(--accent)"> Remember me
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;border-radius:12px;padding:14px" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </form>
+
+    <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Quick access:</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button onclick="fillDemo('admin@soundwave.com','admin123')" style="background:var(--bg-glass);border:1px solid var(--border);color:var(--text-secondary);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font-body)">
+          👑 Admin Demo
+        </button>
+        <button onclick="fillDemo('demo@soundwave.com','demo123')" style="background:var(--bg-glass);border:1px solid var(--border);color:var(--text-secondary);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font-body)">
+          🎵 User Demo
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-switch">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up free</a>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+@keyframes float2 { 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-30px) rotate(5deg)} }
+@keyframes float3 { 0%,100%{transform:translateY(0) rotate(3deg)} 50%{transform:translateY(-25px) rotate(-3deg)} }
+</style>
+<script>
+function togglePass() {
+  const input = document.getElementById('passwordInput');
+  const icon = document.getElementById('eyeIcon');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function fillDemo(email, password) {
+  document.querySelector('[name=email]').value = email;
+  document.querySelector('[name=password]').value = password;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+  btn.disabled = true;
+
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (result.success) {
+      window.location.href = result.redirect || '/';
+    } else {
+      const err = document.getElementById('errorMsg');
+      err.style.display = 'block';
+      err.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${result.message}`;
+    }
+  } catch {
+    document.getElementById('errorMsg').style.display = 'block';
+    document.getElementById('errorMsg').textContent = 'Connection error. Please try again.';
+  }
+
+  btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>

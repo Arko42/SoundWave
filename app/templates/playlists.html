@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Playlists{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">Your Playlists</h1>
+  <p class="page-header-sub">{{ playlists|length }} playlists</p>
+</div>
+<div class="page-section">
+  <div style="margin-bottom:24px">
+    <button onclick="openCreateModal()" class="btn btn-primary">
+      <i class="fas fa-plus"></i> New Playlist
+    </button>
+  </div>
+
+  {% if playlists %}
+  <div class="cards-grid">
+    {% for pl in playlists %}
+    <div class="grid-card" style="position:relative">
+      <a href="{{ url_for('playlist.view', playlist_id=pl.id) }}" style="text-decoration:none;display:block">
+        <div class="grid-card-cover">
+          <img src="{{ url_for('player.cover', filename=pl.cover_path) }}" alt="{{ pl.name }}"
+               onerror="this.src='/static/images/default_cover.jpg'">
+          <div class="grid-card-play"><i class="fas fa-play"></i></div>
+        </div>
+        <div class="grid-card-title">{{ pl.name|truncate(22) }}</div>
+        <div class="grid-card-sub">{{ pl.song_count }} songs • {{ pl.total_duration }}</div>
+      </a>
+      <button onclick="deletePlaylist({{ pl.id }}, this)" title="Delete"
+              style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.5);border:none;color:rgba(239,68,68,0.8);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:12px;display:none"
+              class="pl-delete-btn">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+  // Show delete button on hover
+  document.querySelectorAll('.grid-card').forEach(card => {
+    const btn = card.querySelector('.pl-delete-btn');
+    if (!btn) return;
+    card.addEventListener('mouseenter', () => btn.style.display = 'flex');
+    card.addEventListener('mouseleave', () => btn.style.display = 'none');
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+  });
+  </script>
+
+  {% else %}
+  <div style="text-align:center;padding:80px 32px">
+    <div style="font-size:64px;margin-bottom:20px">🎼</div>
+    <h3 style="font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:12px">No playlists yet</h3>
+    <p style="color:var(--text-muted);margin-bottom:24px">Create your first playlist and curate your perfect sound</p>
+    <button onclick="openCreateModal()" class="btn btn-primary"><i class="fas fa-plus"></i> Create Playlist</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Create Playlist Modal -->
+<div class="modal-overlay" id="createPlaylistModal" onclick="if(event.target===this)closeCreateModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>New Playlist</h3>
+      <button onclick="closeCreateModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Playlist Name *</label>
+        <input type="text" id="newPLName" class="form-control" placeholder="My Awesome Playlist">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="newPLDesc" class="form-control" rows="2" placeholder="Optional description..."></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <input type="checkbox" id="newPLPublic" checked style="accent-color:var(--accent)">
+        <label for="newPLPublic" style="font-size:14px;cursor:pointer">Public playlist</label>
+      </div>
+      <button onclick="createPlaylist()" class="btn btn-primary" style="width:100%;justify-content:center">
+        <i class="fas fa-plus"></i> Create Playlist
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCreateModal() { document.getElementById('createPlaylistModal').classList.add('open'); document.getElementById('newPLName').focus(); }
+function closeCreateModal() { document.getElementById('createPlaylistModal').classList.remove('open'); }
+
+async function createPlaylist() {
+  const name = document.getElementById('newPLName').value.trim();
+  if (!name) { showToast('Please enter a playlist name', 'error'); return; }
+  const res = await fetch('/playlist/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      description: document.getElementById('newPLDesc').value,
+      is_public: document.getElementById('newPLPublic').checked
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Playlist created!', 'success');
+    setTimeout(() => window.location.href = `/playlist/${data.playlist.id}`, 800);
+  } else {
+    showToast(data.message, 'error');
+  }
+}
+
+async function deletePlaylist(id, btn) {
+  if (!confirm('Delete this playlist?')) return;
+  const res = await fetch(`/playlist/${id}/delete`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    btn.closest('.grid-card').style.opacity = '0';
+    btn.closest('.grid-card').style.transition = 'opacity 0.3s';
+    setTimeout(() => { btn.closest('.grid-card').remove(); showToast('Playlist deleted', 'success'); }, 300);
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Discover{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-header-title">Discover Music</h1>
+  <p class="page-header-sub">Explore {{ songs.total }} tracks across all genres</p>
+</div>
+
+<!-- Genre Filter -->
+<div class="page-section" style="padding-bottom:0">
+  <div class="h-scroll" style="padding-bottom:4px">
+    <a href="{{ url_for('main.discover') }}"
+       style="text-decoration:none;flex-shrink:0">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;{% if not selected_genre %}background:var(--gradient);color:white{% else %}background:var(--bg-glass);border:1px solid var(--border);color:var(--text-secondary){% endif %}">
+        All Music
+      </span>
+    </a>
+    {% for g in genres %}
+    <a href="{{ url_for('main.discover', genre=g.id) }}" style="text-decoration:none;flex-shrink:0">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;{% if selected_genre == g.id|string %}background:var(--gradient);color:white{% else %}background:var(--bg-glass);border:1px solid var(--border);color:var(--text-secondary){% endif %}">
+        {{ g.name }}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Song Grid -->
+<div class="page-section">
+  {% if songs.items %}
+  <div class="songs-grid">
+    {% for song in songs.items %}
+    <div class="song-card"
+         data-song-id="{{ song.id }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-album="{{ song.album }}"
+         data-cover="{{ song.cover_path }}"
+         data-duration="{{ song.duration }}"
+         data-duration-fmt="{{ song.duration_formatted }}"
+         data-lyrics="{{ song.lyrics|default('') }}">
+      <div class="song-card-cover">
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+      </div>
+      <div class="song-card-info">
+        <div class="song-card-title">{{ song.title }}</div>
+        <div class="song-card-artist">{{ song.artist }}{% if song.album and song.album != 'Unknown Album' %} • {{ song.album }}{% endif %}</div>
+      </div>
+      <div class="song-card-meta">
+        {% if song.genre_ref %}<span class="genre-badge">{{ song.genre_ref.name }}</span>{% endif %}
+        <span class="song-card-duration">{{ song.duration_formatted }}</span>
+        <div class="song-actions">
+          <button class="icon-btn {% if current_user.is_authenticated and current_user.is_favorite(song.id) %}active{% endif %}"
+                  data-fav-btn="{{ song.id }}" title="Favorite" style="{% if current_user.is_authenticated and current_user.is_favorite(song.id) %}color:var(--accent-2){% endif %}">
+            <i class="fas fa-heart"></i>
+          </button>
+          <button class="icon-btn" data-playlist-btn="{{ song.id }}" title="Add to playlist">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if songs.pages > 1 %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+    {% if songs.has_prev %}
+    <a href="{{ url_for('main.discover', page=songs.prev_num, genre=selected_genre) }}" class="btn btn-outline" style="padding:8px 16px;font-size:13px">
+      <i class="fas fa-chevron-left"></i> Prev
+    </a>
+    {% endif %}
+    <span style="font-size:13px;color:var(--text-muted)">Page {{ songs.page }} of {{ songs.pages }}</span>
+    {% if songs.has_next %}
+    <a href="{{ url_for('main.discover', page=songs.next_num, genre=selected_genre) }}" class="btn btn-outline" style="padding:8px 16px;font-size:13px">
+      Next <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:80px 32px">
+    <div style="font-size:48px;margin-bottom:16px">🎵</div>
+    <h3 style="font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px">No songs found</h3>
+    <p style="color:var(--text-muted)">Try a different genre or upload some music!</p>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('library.upload') }}" class="btn btn-primary" style="margin-top:20px"><i class="fas fa-upload"></i> Upload Music</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

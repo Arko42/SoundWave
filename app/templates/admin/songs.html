@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Manage Songs{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">Manage Songs</h1>
+  <p class="page-header-sub">{{ songs.total }} total songs on the platform</p>
+</div>
+<div class="page-section">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Cover</th><th>Title</th><th>Artist</th><th>Genre</th><th>Duration</th><th>Plays</th><th>Uploaded</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for song in songs.items %}
+        <tr id="songRow{{ song.id }}">
+          <td>
+            <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+                 style="width:36px;height:36px;border-radius:6px;object-fit:cover"
+                 onerror="this.src='/static/images/default_cover.jpg'">
+          </td>
+          <td style="font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ song.title }}</td>
+          <td style="color:var(--text-muted)">{{ song.artist }}</td>
+          <td>{% if song.genre_ref %}<span class="genre-badge">{{ song.genre_ref.name }}</span>{% else %}<span style="color:var(--text-muted)">—</span>{% endif %}</td>
+          <td style="color:var(--text-muted)">{{ song.duration_formatted }}</td>
+          <td><span style="color:var(--accent-bright);font-weight:600">{{ song.play_count }}</span></td>
+          <td style="color:var(--text-muted);font-size:12px">{{ song.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="icon-btn" onclick="playSongById({{ song.id }})" title="Play" style="color:var(--accent)">
+                <i class="fas fa-play"></i>
+              </button>
+              <button class="icon-btn" onclick="adminDeleteSong({{ song.id }})" title="Delete" style="color:rgba(239,68,68,0.7)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if songs.pages > 1 %}
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:24px">
+    {% if songs.has_prev %}
+    <a href="{{ url_for('admin.songs', page=songs.prev_num) }}" class="btn btn-outline" style="padding:8px 16px;font-size:13px">← Prev</a>
+    {% endif %}
+    <span style="padding:8px 16px;font-size:13px;color:var(--text-muted)">Page {{ songs.page }} of {{ songs.pages }}</span>
+    {% if songs.has_next %}
+    <a href="{{ url_for('admin.songs', page=songs.next_num) }}" class="btn btn-outline" style="padding:8px 16px;font-size:13px">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+async function playSongById(id) {
+  await SW.playById(id);
+}
+
+async function adminDeleteSong(id) {
+  if (!confirm('Delete this song permanently?')) return;
+  const res = await fetch(`/admin/songs/${id}/delete`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    const row = document.getElementById(`songRow${id}`);
+    row.style.opacity = '0'; row.style.transition = 'opacity 0.3s';
+    setTimeout(() => row.remove(), 300);
+    showToast('Song deleted', 'success');
+  }
+}
+</script>
+{% endblock %}

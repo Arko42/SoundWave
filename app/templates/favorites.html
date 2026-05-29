@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Favorites{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">❤️ Favorites</h1>
+  <p class="page-header-sub">{{ songs|length }} songs you love</p>
+</div>
+<div class="page-section">
+  {% if songs %}
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+    <button onclick="playAll()" class="btn btn-primary" style="padding:10px 20px">
+      <i class="fas fa-play"></i> Play All
+    </button>
+    <button onclick="shuffleAll()" class="btn btn-outline" style="padding:10px 20px">
+      <i class="fas fa-random"></i> Shuffle
+    </button>
+  </div>
+  <div class="songs-grid">
+    {% for song in songs %}
+    <div class="song-card"
+         data-song-id="{{ song.id }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-cover="{{ song.cover_path }}"
+         data-duration="{{ song.duration }}"
+         data-duration-fmt="{{ song.duration_formatted }}"
+         data-lyrics="{{ song.lyrics|default('') }}">
+      <div class="song-card-cover">
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+      </div>
+      <div class="song-card-info">
+        <div class="song-card-title">{{ song.title }}</div>
+        <div class="song-card-artist">{{ song.artist }}</div>
+      </div>
+      <div class="song-card-meta">
+        <span class="song-card-duration">{{ song.duration_formatted }}</span>
+        <div class="song-actions">
+          <button class="icon-btn active" data-fav-btn="{{ song.id }}" title="Remove favorite" style="color:var(--accent-2)">
+            <i class="fas fa-heart"></i>
+          </button>
+          <button class="icon-btn" data-playlist-btn="{{ song.id }}" title="Add to playlist">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:80px 32px">
+    <div style="font-size:64px;margin-bottom:20px">💔</div>
+    <h3 style="font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:12px">No favorites yet</h3>
+    <p style="color:var(--text-muted);margin-bottom:24px">Hit the heart icon on any song to save it here</p>
+    <a href="{{ url_for('main.discover') }}" class="btn btn-primary"><i class="fas fa-compass"></i> Discover Music</a>
+  </div>
+  {% endif %}
+</div>
+<script>
+const allSongs = [{% for song in songs %}{id:{{song.id}},title:{{song.title|tojson}},artist:{{song.artist|tojson}},cover_path:{{song.cover_path|tojson}},duration:{{song.duration}},duration_formatted:{{song.duration_formatted|tojson}},lyrics:{{(song.lyrics or '')|tojson}}}{% if not loop.last %},{% endif %}{% endfor %}];
+function playAll() { if(allSongs.length>0) playSong(allSongs[0],allSongs); }
+function shuffleAll() { const s=[...allSongs].sort(()=>Math.random()-0.5); if(s.length>0){isShuffle=true;document.getElementById('shuffleBtn').classList.add('active');playSong(s[0],s);} }
+</script>
+{% endblock %}

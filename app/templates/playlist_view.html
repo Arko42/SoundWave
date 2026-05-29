@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{{ playlist.name }}{% endblock %}
+{% block content %}
+<!-- Playlist Hero -->
+<div style="background:var(--gradient-soft);border-bottom:1px solid var(--border);padding:40px 32px;display:flex;gap:32px;align-items:flex-end">
+  <div style="width:180px;height:180px;border-radius:var(--radius-lg);overflow:hidden;flex-shrink:0;box-shadow:var(--shadow-lg)">
+    <img src="{{ url_for('player.cover', filename=playlist.cover_path) }}" alt="{{ playlist.name }}"
+         style="width:100%;height:100%;object-fit:cover" onerror="this.src='/static/images/default_cover.jpg'">
+  </div>
+  <div style="flex:1">
+    <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Playlist</span>
+    <h1 style="font-family:var(--font-display);font-size:40px;font-weight:800;margin:8px 0;line-height:1.1">{{ playlist.name }}</h1>
+    {% if playlist.description %}
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:12px">{{ playlist.description }}</p>
+    {% endif %}
+    <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--text-muted)">
+      <span><img src="{{ url_for('player.avatar', filename=playlist.owner.avatar) }}"
+                 style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:6px"
+                 onerror="this.src='/static/images/default_avatar.png'">{{ playlist.owner.username }}</span>
+      <span>{{ songs|length }} songs</span>
+      <span>{{ playlist.total_duration }}</span>
+      {% if not playlist.is_public %}<span>🔒 Private</span>{% endif %}
+    </div>
+    {% if songs %}
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button onclick="playAll()" class="btn btn-primary" style="border-radius:28px">
+        <i class="fas fa-play"></i> Play
+      </button>
+      <button onclick="shuffleAll()" class="btn btn-outline" style="border-radius:28px">
+        <i class="fas fa-random"></i> Shuffle
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Song List -->
+<div class="page-section">
+  {% if songs %}
+  <div class="songs-grid" id="playlistSongs">
+    {% for song in songs %}
+    <div class="song-card"
+         data-song-id="{{ song.id }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-cover="{{ song.cover_path }}"
+         data-duration="{{ song.duration }}"
+         data-duration-fmt="{{ song.duration_formatted }}"
+         data-lyrics="{{ song.lyrics|default('') }}">
+      <span style="color:var(--text-muted);font-size:13px;width:24px;text-align:center;flex-shrink:0">{{ loop.index }}</span>
+      <div class="song-card-cover">
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+      </div>
+      <div class="song-card-info">
+        <div class="song-card-title">{{ song.title }}</div>
+        <div class="song-card-artist">{{ song.artist }}</div>
+      </div>
+      <div class="song-card-meta">
+        <span class="song-card-duration">{{ song.duration_formatted }}</span>
+        <div class="song-actions">
+          <button class="icon-btn" data-fav-btn="{{ song.id }}" title="Favorite"><i class="fas fa-heart"></i></button>
+          {% if current_user.is_authenticated and current_user.id == playlist.user_id %}
+          <button class="icon-btn" onclick="event.stopPropagation();removeSong({{ song.id }})" title="Remove from playlist" style="color:rgba(239,68,68,0.6)">
+            <i class="fas fa-minus-circle"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:60px 32px">
+    <div style="font-size:48px;margin-bottom:16px">🎵</div>
+    <h3 style="font-family:var(--font-display);font-size:20px;font-weight:800;margin-bottom:8px">This playlist is empty</h3>
+    <p style="color:var(--text-muted);margin-bottom:20px">Add songs by clicking "+" on any track</p>
+    <a href="{{ url_for('main.discover') }}" class="btn btn-primary"><i class="fas fa-compass"></i> Discover Music</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const allSongs = [{% for song in songs %}{id:{{song.id}},title:{{song.title|tojson}},artist:{{song.artist|tojson}},cover_path:{{song.cover_path|tojson}},duration:{{song.duration}},duration_formatted:{{song.duration_formatted|tojson}},lyrics:{{(song.lyrics or '')|tojson}}}{% if not loop.last %},{% endif %}{% endfor %}];
+function playAll() { if(allSongs.length>0) playSong(allSongs[0],allSongs); }
+function shuffleAll() { const s=[...allSongs].sort(()=>Math.random()-0.5); if(s.length>0){isShuffle=true;document.getElementById('shuffleBtn').classList.add('active');playSong(s[0],s);} }
+
+async function removeSong(songId) {
+  const res = await fetch(`/playlist/{{ playlist.id }}/remove-song`, {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({song_id: songId})
+  });
+  const data = await res.json();
+  if (data.success) {
+    const card = document.querySelector(`[data-song-id="${songId}"]`);
+    if (card) { card.style.opacity='0'; card.style.transition='opacity 0.3s'; setTimeout(()=>card.remove(),300); }
+    showToast('Removed from playlist', 'success');
+  }
+}
+</script>
+{% endblock %}

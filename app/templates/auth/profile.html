@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">Your Profile</h1>
+  <p class="page-header-sub">Manage your account settings and preferences</p>
+</div>
+
+<div class="page-section" style="max-width:700px">
+  <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data">
+    <!-- Avatar -->
+    <div style="display:flex;align-items:center;gap:24px;margin-bottom:32px;padding:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <div style="position:relative">
+        <img src="{{ url_for('player.avatar', filename=current_user.avatar) }}" alt="Avatar"
+             id="avatarPreview"
+             style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--accent)"
+             onerror="this.src='/static/images/default_avatar.png'">
+        <label for="avatarInput" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--gradient);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:white">
+          <i class="fas fa-camera"></i>
+        </label>
+        <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+      </div>
+      <div>
+        <div style="font-size:20px;font-weight:700">{{ current_user.username }}</div>
+        <div style="color:var(--text-muted);font-size:14px">{{ current_user.email }}</div>
+        {% if current_user.is_admin %}<span class="genre-badge" style="margin-top:8px;display:inline-block">👑 Admin</span>{% endif %}
+      </div>
+    </div>
+
+    <!-- Profile Info -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px">
+      <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:20px">Account Info</h3>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" value="{{ current_user.username }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        <textarea name="bio" class="form-control" rows="3" placeholder="Tell everyone about yourself...">{{ current_user.bio }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Theme</label>
+        <select name="theme" class="form-control">
+          <option value="dark" {% if current_user.theme == 'dark' %}selected{% endif %}>🌙 Dark Mode</option>
+          <option value="light" {% if current_user.theme == 'light' %}selected{% endif %}>☀️ Light Mode</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px">
+      <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:20px">Change Password</h3>
+      <div class="form-group">
+        <label class="form-label">Current Password</label>
+        <input type="password" name="current_password" class="form-control" placeholder="Enter current password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input type="password" name="new_password" class="form-control" placeholder="Enter new password (min 6 chars)">
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:24px">
+      <h3 style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:16px">Your Stats</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div style="text-align:center">
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ current_user.favorites.count() }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Favorites</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ current_user.playlists.count() }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Playlists</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ current_user.history.count() }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Plays</div>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+  </form>
+</div>
+
+<script>
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => document.getElementById('avatarPreview').src = e.target.result;
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

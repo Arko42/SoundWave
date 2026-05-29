@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="page-section">
+  <div class="search-wrapper" style="max-width:640px;margin:0 auto 32px">
+    <i class="fas fa-search"></i>
+    <input type="text" id="searchInput" class="search-input-full" placeholder="Search songs, artists, albums..."
+           value="{{ q }}" autofocus>
+  </div>
+
+  {% if q %}
+    <!-- Songs Results -->
+    <div style="margin-bottom:32px">
+      <h2 class="section-title" style="margin-bottom:16px">
+        Songs <span style="font-size:16px;color:var(--text-muted);font-weight:400">({{ results|length }})</span>
+      </h2>
+      {% if results %}
+      <div class="songs-grid">
+        {% for song in results %}
+        <div class="song-card"
+             data-song-id="{{ song.id }}"
+             data-title="{{ song.title }}"
+             data-artist="{{ song.artist }}"
+             data-cover="{{ song.cover_path }}"
+             data-duration="{{ song.duration }}"
+             data-duration-fmt="{{ song.duration_formatted }}"
+             data-lyrics="{{ song.lyrics|default('') }}">
+          <div class="song-card-cover">
+            <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+                 onerror="this.src='/static/images/default_cover.jpg'">
+            <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+          </div>
+          <div class="song-card-info">
+            <div class="song-card-title">{{ song.title }}</div>
+            <div class="song-card-artist">{{ song.artist }} • {{ song.album }}</div>
+          </div>
+          <div class="song-card-meta">
+            <span class="song-card-duration">{{ song.duration_formatted }}</span>
+            <div class="song-actions">
+              <button class="icon-btn" data-fav-btn="{{ song.id }}" title="Favorite"><i class="fas fa-heart"></i></button>
+              <button class="icon-btn" data-playlist-btn="{{ song.id }}" title="Add to playlist"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted);font-size:14px">No songs found for "{{ q }}"</p>
+      {% endif %}
+    </div>
+
+    <!-- Playlist Results -->
+    {% if playlists %}
+    <div>
+      <h2 class="section-title" style="margin-bottom:16px">Playlists</h2>
+      <div class="cards-grid">
+        {% for pl in playlists %}
+        <a href="{{ url_for('playlist.view', playlist_id=pl.id) }}" style="text-decoration:none">
+          <div class="grid-card">
+            <div class="grid-card-cover">
+              <img src="{{ url_for('player.cover', filename=pl.cover_path) }}" alt="{{ pl.name }}"
+                   onerror="this.src='/static/images/default_cover.jpg'">
+              <div class="grid-card-play"><i class="fas fa-play"></i></div>
+            </div>
+            <div class="grid-card-title">{{ pl.name }}</div>
+            <div class="grid-card-sub">{{ pl.song_count }} songs</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  {% else %}
+  <!-- Empty search state -->
+  <div style="text-align:center;padding:60px 32px">
+    <div style="font-size:56px;margin-bottom:20px">🔍</div>
+    <h2 style="font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:8px">Find your music</h2>
+    <p style="color:var(--text-muted)">Search for songs, artists or albums</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+      {% for term in ['Pop', 'Rock', 'Hip-Hop', 'Jazz', 'Electronic'] %}
+      <button onclick="doSearch('{{ term }}')"
+              style="background:var(--bg-glass);border:1px solid var(--border);color:var(--text-secondary);padding:8px 18px;border-radius:24px;font-size:13px;cursor:pointer;font-family:var(--font-body);transition:all 0.2s"
+              onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        {{ term }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    const q = e.target.value.trim();
+    if (q.length >= 2 || q.length === 0) {
+      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    }
+  }, 500);
+});
+
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    window.location.href = `/search?q=${encodeURIComponent(q)}`;
+  }
+});
+
+function doSearch(term) {
+  window.location.href = `/search?q=${encodeURIComponent(term)}`;
+}
+</script>
+{% endblock %}

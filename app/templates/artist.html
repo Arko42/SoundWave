@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}{{ artist_name }}{% endblock %}
+{% block content %}
+<!-- Artist Hero -->
+<div style="background:var(--gradient-soft);border-bottom:1px solid var(--border);padding:48px 32px;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 80% 50%,rgba(124,58,237,0.15) 0%,transparent 70%);pointer-events:none"></div>
+  <div style="display:flex;align-items:center;gap:32px">
+    <div style="width:120px;height:120px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:48px;font-weight:800;color:white;flex-shrink:0;box-shadow:var(--shadow-lg)">
+      {{ artist_name[0].upper() }}
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px">Artist</div>
+      <h1 style="font-family:var(--font-display);font-size:48px;font-weight:800;margin-bottom:12px;line-height:1">{{ artist_name }}</h1>
+      <div style="color:var(--text-muted);font-size:14px">{{ songs|length }} songs • {{ albums|length }} albums</div>
+      {% if songs %}
+      <button onclick="playAll()" class="btn btn-primary" style="margin-top:20px;border-radius:28px">
+        <i class="fas fa-play"></i> Play All
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Albums -->
+{% if albums %}
+<div class="page-section" style="padding-bottom:0">
+  <h2 class="section-title" style="margin-bottom:16px">Albums</h2>
+  <div class="h-scroll">
+    {% for album_name, count in albums %}
+    <a href="{{ url_for('main.album', artist_name=artist_name, album_name=album_name) }}" style="text-decoration:none;flex-shrink:0">
+      <div class="grid-card" style="width:160px">
+        <div class="grid-card-cover">
+          <img src="/static/images/default_cover.jpg" alt="{{ album_name }}"
+               onerror="this.src='/static/images/default_cover.jpg'">
+          <div class="grid-card-play"><i class="fas fa-play"></i></div>
+        </div>
+        <div class="grid-card-title">{{ album_name|truncate(20) }}</div>
+        <div class="grid-card-sub">{{ count }} songs</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- All Songs -->
+<div class="page-section">
+  <h2 class="section-title" style="margin-bottom:16px">All Songs</h2>
+  <div class="songs-grid">
+    {% for song in songs %}
+    <div class="song-card"
+         data-song-id="{{ song.id }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-cover="{{ song.cover_path }}"
+         data-duration="{{ song.duration }}"
+         data-duration-fmt="{{ song.duration_formatted }}"
+         data-lyrics="{{ song.lyrics|default('') }}">
+      <div class="song-card-cover">
+        <img src="{{ url_for('player.cover', filename=song.cover_path) }}" alt="{{ song.title }}"
+             onerror="this.src='/static/images/default_cover.jpg'">
+        <div class="song-card-play-overlay"><i class="fas fa-play"></i></div>
+      </div>
+      <div class="song-card-info">
+        <div class="song-card-title">{{ song.title }}</div>
+        <div class="song-card-artist">{{ song.album }}</div>
+      </div>
+      <div class="song-card-meta">
+        <span class="song-card-duration">{{ song.duration_formatted }}</span>
+        <div class="song-actions">
+          <button class="icon-btn" data-fav-btn="{{ song.id }}" title="Favorite"><i class="fas fa-heart"></i></button>
+          <button class="icon-btn" data-playlist-btn="{{ song.id }}" title="Add to playlist"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+const allSongs = [{% for song in songs %}{id:{{song.id}},title:{{song.title|tojson}},artist:{{song.artist|tojson}},cover_path:{{song.cover_path|tojson}},duration:{{song.duration}},duration_formatted:{{song.duration_formatted|tojson}},lyrics:{{(song.lyrics or '')|tojson}}}{% if not loop.last %},{% endif %}{% endfor %}];
+function playAll() { if(allSongs.length>0) playSong(allSongs[0],allSongs); }
+</script>
+{% endblock %}
