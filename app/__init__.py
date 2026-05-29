@@ -7,31 +7,41 @@ from flask_limiter.util import get_remote_address
 from config import config
 import os
 
+# Extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
-socketio = SocketIO()
+
+# Removed eventlet async_mode
+socketio = SocketIO(cors_allowed_origins="*")
+
 limiter = Limiter(key_func=get_remote_address)
+
 
 def create_app(config_name='default'):
     app = Flask(__name__)
+
+    # Load config
     app.config.from_object(config[config_name])
 
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+    socketio.init_app(app)
     limiter.init_app(app)
 
+    # Login settings
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 
     # Ensure upload directories exist
-    for folder in [
-        app.config['UPLOAD_FOLDER'],
-        app.config['SONGS_FOLDER'],
-        app.config['COVERS_FOLDER'],
-        app.config['AVATARS_FOLDER'],
-    ]:
+    folders = [
+        app.config.get('UPLOAD_FOLDER', 'uploads'),
+        app.config.get('SONGS_FOLDER', 'uploads/songs'),
+        app.config.get('COVERS_FOLDER', 'uploads/covers'),
+        app.config.get('AVATARS_FOLDER', 'uploads/avatars'),
+    ]
+
+    for folder in folders:
         os.makedirs(folder, exist_ok=True)
 
     # Register blueprints
@@ -51,7 +61,7 @@ def create_app(config_name='default'):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api')
 
-    # Create tables and seed data
+    # Create database tables
     with app.app_context():
         db.create_all()
         seed_database()
@@ -60,12 +70,12 @@ def create_app(config_name='default'):
 
 
 def seed_database():
-    """Create default admin user and sample data if not exists."""
+    """Create default users and genres."""
     from app.models.user import User
-    from app.models.song import Song, Genre
+    from app.models.song import Genre
     from werkzeug.security import generate_password_hash
 
-    # Create admin user
+    # Admin user
     if not User.query.filter_by(email='admin@soundwave.com').first():
         admin = User(
             username='admin',
@@ -76,7 +86,7 @@ def seed_database():
         )
         db.session.add(admin)
 
-    # Create demo user
+    # Demo user
     if not User.query.filter_by(email='demo@soundwave.com').first():
         demo = User(
             username='demouser',
@@ -86,10 +96,22 @@ def seed_database():
         )
         db.session.add(demo)
 
-    # Create genres
-    genres = ['Pop', 'Rock', 'Hip-Hop', 'Electronic', 'Jazz', 'Classical', 'R&B', 'Country', 'Metal', 'Indie']
-    for g in genres:
-        if not Genre.query.filter_by(name=g).first():
-            db.session.add(Genre(name=g))
+    # Music genres
+    genres = [
+        'Pop',
+        'Rock',
+        'Hip-Hop',
+        'Electronic',
+        'Jazz',
+        'Classical',
+        'R&B',
+        'Country',
+        'Metal',
+        'Indie'
+    ]
+
+    for genre_name in genres:
+        if not Genre.query.filter_by(name=genre_name).first():
+            db.session.add(Genre(name=genre_name))
 
     db.session.commit()
